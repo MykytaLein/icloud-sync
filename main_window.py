@@ -1,13 +1,13 @@
-from tkinter        import (Tk, Frame, Label, Button, Entry, 
-                            Checkbutton, BooleanVar, StringVar)
-from tkinter.ttk    import Combobox
-from tkcalendar     import DateEntry
-from datetime       import date
-import json
+import tkinter  as tk
+import logic
 
-# from json import load
+class MainWindow(tk.Frame):
+    def __init__(self: tk.Frame, master: tk.Tk):
+        tk.Frame.__init__(self, master=master)
+        self.grid_columnconfigure(0,weight=1)
+        self.grid_rowconfigure(0,weight=1)
 
-
-class MainWindow(Frame):
-    def __init__(self: Frame, master: Tk=None):
-        Frame.__init__(self, master=master)
+        lastRunDict = logic.load_last_run_info()
+        lastRunDate     = lastRunDict['last_run_date']
+        lastRunDateFrom = lastRunDict['date_from']
+        lastRunDateTo   = lastRunDict['date_to']
