@@ -2,7 +2,7 @@ import tkinter  as tk
 import logic
 from tkcalendar import DateEntry
 from datetime   import date
-
+from tkinter.ttk import Combobox
 class MainWindow(tk.Frame):
     def __init__(self: tk.Frame, master: tk.Tk):
         tk.Frame.__init__(self, master=master)
@@ -42,6 +42,34 @@ class MainWindow(tk.Frame):
         lastRunLabel = tk.Label(master=self, padx=10, pady=10, 
             justify="left", font='Bauhaus 15', bd=1, relief='sunken',
             text=f'Last run: {lastRunDate}\nFrom: {lastRunDateFrom}\nTo: {lastRunDateTo}')
+        
+        # Apple ID
+        appleIdLabel = tk.Label(master=self, text='Apple ID:', 
+                                padx=10, pady=10, anchor='w')
+        appleIdInput = tk.Entry(master=self)
+
+        # Apple ID e-mail combobox
+        self.eMail = tk.StringVar()
+        eMailCmb = Combobox(master=self, textvariable=self.eMail, width=14,
+                            values=('@icloud.com', '@gmail.com', '@gmx.de'))
+        eMailCmb.current(0) 
+
+        # Password
+        pwdLabel = tk.Label(master=self, text='Password:', 
+                            padx=10, pady=10, anchor='w')
+        pwdInput = tk.Entry(master=self)
+        pwdInput.config(show='*')
+
+        # Show/hide password checkbox
+        showPass = tk.BooleanVar()
+        pwdShow = tk.Checkbutton(master=self, text='Show password', width=14, anchor='w',
+            variable=showPass, onvalue=True, offvalue=False, command=lambda: self.show_hide_pass_clicked(
+                checkbutton=pwdShow, pwdInput=pwdInput, showPass=showPass.get()))
+
+        # Start button
+        startButton = tk.Button(master=self, text='Load photos\n from ICloud', 
+                                padx=20, bg='blue', fg='white',
+                                font='Bauhaus 18 bold', command=self.start_import)
 
         header.grid(row=0, column=0, columnspan=4, sticky='nswe')
         
@@ -55,11 +83,30 @@ class MainWindow(tk.Frame):
 
         lastRunLabel.grid(row=1, column=3, rowspan=2, padx=5, pady=(10, 40), sticky='nswe')
 
+        appleIdLabel.grid(row=3, column=0, padx=(0, 10), sticky='we')
+        appleIdInput.grid(row=3, column=1, padx=5, sticky='we')
+        eMailCmb.grid(row=3, column=2, padx=5, sticky='we')
+
+        pwdLabel.grid(row=4, column=0, padx=(0, 10), pady=(10,0), sticky='we')
+        pwdInput.grid(row=4, column=1, padx=5, pady=(10,0), sticky='we')
+        pwdShow.grid(row=4, column=2, padx=5, pady=(10,0), sticky='we')
+
+        startButton.grid(row=3, column=3, rowspan=2, padx=5, pady=10, sticky='nswe')
+
     def configure_grid_weights(self):
-        self.grid_columnconfigure(0,weight=1)
-        self.grid_rowconfigure(0,weight=1)
-        self.grid_columnconfigure(1,weight=1)
-        self.grid_rowconfigure(1,weight=1)
-        self.grid_columnconfigure(2,weight=1)
-        self.grid_rowconfigure(2,weight=1)
-        self.grid_columnconfigure(3,weight=1)
+        for row in range(5):
+            self.grid_rowconfigure(row, weight=1)
+        for column in range(1, 4, 1):
+            self.grid_columnconfigure(column,weight=1)
+
+    def show_hide_pass_clicked(self: tk.Frame, checkbutton: tk.Checkbutton, pwdInput: tk.Entry, showPass: bool):
+        if(showPass):
+            pwdInput.config(show='')
+            checkbutton['text'] = 'Hide password'
+        else:
+            pwdInput.config(show='*')
+            checkbutton['text'] = 'Show password'
+
+    def start_import(self: tk.Frame):
+        print(1)
+        pass

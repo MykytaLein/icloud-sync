@@ -8,7 +8,8 @@ def main():
     
     root.grid_columnconfigure(0,weight=1)
     root.grid_rowconfigure(0,weight=1)
-    root.minsize(width=600, height=200)
+    root.minsize(width=700, height=295)
+    root.maxsize(width=root.winfo_screenwidth(), height=800)
 
     mainWindow.grid(row=0, column=0, padx=10, pady=10, sticky='nswe')
     root.mainloop()
