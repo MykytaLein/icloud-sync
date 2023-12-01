@@ -21,7 +21,7 @@ class Logger:
             streamHandler.setLevel(log.INFO)
             streamHandler.setFormatter(formatter)
 
-            fileHandler = log.FileHandler('./log.log')
+            fileHandler = log.FileHandler('./log/log.log')
             fileHandler.setLevel(log.INFO)
             fileHandler.setFormatter(formatter)
 

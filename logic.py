@@ -8,7 +8,7 @@ def load_last_run_info() -> dict:
 
 def load_photos(appleId: str, pwd: str, 
     fromDate: str, toDate: str, mainWindow):
-    api = PyiCloudService(appleId, pwd)
+    api = PyiCloudService(appleId, pwd, cookie_directory='./log')
     if api.requires_2fa:
         code = mainWindow.pop_up_2fa()
         if not code: 
