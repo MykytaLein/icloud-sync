@@ -4,6 +4,7 @@ from tkcalendar import DateEntry
 from datetime   import date
 from tkinter.ttk import Combobox
 from tkinter.scrolledtext import ScrolledText 
+from tkinter import simpledialog
 import logging as log
 
 class TkConsole(ScrolledText):
@@ -144,11 +145,8 @@ class MainWindow(tk.Frame):
 
     def start_import(self):
         if not self.validate_inputs(): return
-        id = self.get_apple_id()
-        pwd = self.pwd.get()
-        fromDate = self.dateFrom.get()
-        toDate = self.dateTo.get()
-        logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate)
+        id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
+        logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
         log.info('oh ye')
 
     def validate_inputs(self) -> bool:
@@ -159,3 +157,7 @@ class MainWindow(tk.Frame):
             
         self.error['text'] = ''
         return True
+    
+    def pop_up_2fa(self):
+        return simpledialog.askstring(
+            title='2fa required', prompt='Enter the code from trusted device:')
