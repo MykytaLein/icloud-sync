@@ -19,3 +19,6 @@ def load_photos(appleId: str, pwd: str,
         if not result: 
             log.error('False 2fa code provided')
             return
+        
+    elif api.requires_2sa:
+        pass

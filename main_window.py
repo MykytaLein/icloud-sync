@@ -1,17 +1,12 @@
-import tkinter  as tk
-import logic
+import tkinter as tk
 from tkcalendar import DateEntry
-from datetime   import date
 from tkinter.ttk import Combobox
-from tkinter.scrolledtext import ScrolledText 
 from tkinter import simpledialog
 import logging as log
+from datetime   import date
 
-class TkConsole(ScrolledText):
-    def write(self, text:str):
-        self.insert(index='end', chars=text)
-    def flush(self):
-        pass
+from additional_gui import TkConsole, PopUpListBox
+import logic
 
 class MainWindow(tk.Frame):
     def __init__(self, master: tk.Tk):
@@ -144,10 +139,12 @@ class MainWindow(tk.Frame):
         return f'{appleIdInput}{email}'
 
     def start_import(self):
-        if not self.validate_inputs(): return
-        id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
-        logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
-        log.info('oh ye')
+        popUp = PopUpListBox(self, ['1', '2', '3'])
+
+        # if not self.validate_inputs(): return
+        # id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
+        # logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
+        # log.info('oh ye')
 
     def validate_inputs(self) -> bool:
         for input in self.inputs:
