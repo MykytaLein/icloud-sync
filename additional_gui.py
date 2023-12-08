@@ -1,6 +1,8 @@
 from tkinter.scrolledtext import ScrolledText 
 import tkinter as tk 
 
+import logic
+
 class TkConsole(ScrolledText):
     def write(self, text:str):
         self.insert(index='end', chars=text)
@@ -21,13 +23,20 @@ class PopUpListBox(tk.Toplevel):
         
         # List of trusted devices
         listVar = tk.Variable(master=self, value=values)
-        listbox = tk.Listbox(master=self, listvariable=listVar)
+        self.listbox = tk.Listbox(
+            master=self, listvariable=listVar, selectmode='single',
+            selectbackground='Gray', activestyle='none')
 
         # End choice button
         button = tk.Button(master=self, text='Choose device', 
-                           bg='blue', fg='white', font='Bauhaus 18 bold')
+                           bg='blue', fg='white', font='Bauhaus 18 bold',
+                           command=self.exit_pop)
 
         # Grid the elements
         label.grid(row=0, column=0, padx=5, pady=5, sticky='nswe')
-        listbox.grid(row=1, column=0, padx=5, pady=(0,5), sticky='nswe')
+        self.listbox.grid(row=1, column=0, padx=5, pady=(0,5), sticky='nswe')
         button.grid(row=2, column=0, padx=5, pady=(0,5), sticky='nswe')
+
+    def exit_pop(self):
+        logic.device = self.listbox.get(self.listbox.curselection())
+        self.destroy()

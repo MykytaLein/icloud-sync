@@ -139,12 +139,12 @@ class MainWindow(tk.Frame):
         return f'{appleIdInput}{email}'
 
     def start_import(self):
-        popUp = PopUpListBox(self, ['1', '2', '3'])
+        # popUp = PopUpListBox(self, ['1', '2', '3'])
 
-        # if not self.validate_inputs(): return
-        # id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
-        # logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
-        # log.info('oh ye')
+        if not self.validate_inputs(): return
+        id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
+        logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
+        log.info('oh ye')
 
     def validate_inputs(self) -> bool:
         for input in self.inputs:
@@ -158,3 +158,7 @@ class MainWindow(tk.Frame):
     def pop_up_2fa(self):
         return simpledialog.askstring(
             title='2fa required', prompt='Enter the code from trusted device:')
+    
+    def pop_up_2sa(self, devices: list):
+        popup = PopUpListBox(master=self, values=devices)
+        popup.wait_window()

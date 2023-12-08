@@ -2,6 +2,8 @@ import logging as log
 import json
 from pyicloud import PyiCloudService
 
+device: str
+
 def load_last_run_info() -> dict:
     with open('./last_run.json') as info:
         return json.load(info)
@@ -21,4 +23,9 @@ def load_photos(appleId: str, pwd: str,
             return
         
     elif api.requires_2sa:
-        pass
+        devices = api.trusted_devices
+        devices = [
+            device.get('phoneNumber') for device in devices
+        ]
+        mainWindow.pop_up_2sa(devices=devices)
+        print('ended')
