@@ -155,10 +155,10 @@ class MainWindow(tk.Frame):
         self.error['text'] = ''
         return True
     
-    def pop_up_2fa(self):
+    def pop_up_2fa(self) -> str|None:
         return simpledialog.askstring(
-            title='2fa required', prompt='Enter the code from trusted device:')
+            title='Verification required', prompt='Enter the code from trusted device:')
     
-    def pop_up_2sa(self, devices: list):
-        popup = PopUpListBox(master=self, values=devices)
+    def pop_up_2sa(self, devices: list) -> None:
+        popup = PopUpListBox(master=self, values=devices, logic=self.logic)
         popup.wait_window()

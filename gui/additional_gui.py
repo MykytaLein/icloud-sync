@@ -1,7 +1,7 @@
 from tkinter.scrolledtext import ScrolledText 
 import tkinter as tk 
 
-import logic.logic
+from logic.logic import Logic
 
 class TkConsole(ScrolledText):
     def write(self, text:str):
@@ -10,9 +10,10 @@ class TkConsole(ScrolledText):
         pass
 
 class PopUpListBox(tk.Toplevel):
-    def __init__(self, master, values: list):
+    def __init__(self, master, values: list, logic: Logic):
         # Initialize popup
         tk.Toplevel.__init__(self=self, master=master)
+        self.logic = logic
         self.title = 'Two step authentication'
 
         # Label
@@ -38,5 +39,5 @@ class PopUpListBox(tk.Toplevel):
         button.grid(row=2, column=0, padx=5, pady=(0,5), sticky='nswe')
 
     def exit_pop(self):
-        logic.device = self.listbox.get(self.listbox.curselection())
+        self.logic.device = self.listbox.get(self.listbox.curselection())
         self.destroy()

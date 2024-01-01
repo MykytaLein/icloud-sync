@@ -58,13 +58,13 @@ class Logic:
             # If popup was closed without input
             if not code: 
                 log.error('No 2fa code provided')
-                return
+                return False
             
             # Validate authentication code
             result = api.validate_2fa_code(code)
-            if not result:  
+            if not result:
                 log.error('False 2fa code provided')
-                return
+                return False
             
         # Two step authentication
         elif api.requires_2sa:
@@ -74,6 +74,29 @@ class Logic:
             ]
             # Ask user to choose which device to use for authentication
             mainWindow.pop_up_2sa(devices=devices)
+
+            if not self.device: return False
+
+            # Send verification code to the chosen trusted device
+            sent = api.send_verification_code(self.device)
+            if not sent:  
+                log.error('Failed to send two step authentication code')
+                return False
+            
+            # Request authentication code
+            code = mainWindow.pop_up_2fa() # the code stops here until popup is closed
+
+            # If popup was closed without input
+            if not code: 
+                log.error('No verification code provided')
+                return False
+            
+            # Validate verification code
+            result = api.validate_verification_code(code)
+            if not result:
+                log.error('False verification code provided')
+                return False
+
 
     def get_processed_photos(self) -> pd.DataFrame:
         path = './log/processed_photos.csv'
