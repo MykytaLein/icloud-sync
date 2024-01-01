@@ -3,21 +3,21 @@ from tkcalendar import DateEntry
 from tkinter.ttk import Combobox
 from tkinter import simpledialog
 import logging as log
-from datetime   import date
+from datetime import date
 
-from additional_gui import TkConsole, PopUpListBox
-import logic
+from gui.additional_gui import TkConsole, PopUpListBox
 
 class MainWindow(tk.Frame):
-    def __init__(self, master: tk.Tk):
+    def __init__(self, master: tk.Tk, logic):
         tk.Frame.__init__(self, master=master)
         self.configure_grid_weights()
         self.inputs = list()
+        self.logic = logic
 
         ###########################
         # Load last run information
         ###########################
-        lastRunDict = logic.load_last_run_info()
+        lastRunDict = self.logic.load_last_run_info()
         lastRunDate     = lastRunDict['last_run_date']
         lastRunDateFrom = lastRunDict['date_from']
         lastRunDateTo   = lastRunDict['date_to']
@@ -143,7 +143,7 @@ class MainWindow(tk.Frame):
 
         if not self.validate_inputs(): return
         id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
-        logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
+        self.logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
         log.info('oh ye')
 
     def validate_inputs(self) -> bool:

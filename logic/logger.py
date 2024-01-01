@@ -1,4 +1,4 @@
-from main_window import MainWindow
+from gui.main_window import MainWindow
 import logging as log
 
 class Logger:

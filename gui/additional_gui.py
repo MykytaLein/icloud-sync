@@ -1,7 +1,7 @@
 from tkinter.scrolledtext import ScrolledText 
 import tkinter as tk 
 
-import logic
+import logic.logic
 
 class TkConsole(ScrolledText):
     def write(self, text:str):
