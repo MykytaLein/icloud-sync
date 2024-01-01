@@ -27,14 +27,15 @@ class Logic:
         api = PyiCloudService(appleId, pwd, cookie_directory='./log')
         
         # Handle authentication request
-        self.handle_authentication(api=api, mainWindow=mainWindow)
+        authenticated = self.handle_authentication(api=api, mainWindow=mainWindow)
+        if not authenticated: return 
 
         # for loop
-            # check for zip
 
         for index, photo in enumerate(api.photos.all):
             # 499 <PhotoAsset: id=AcCjs8CfnS/WwBWehUF1GZOSh2AI> 2023-11-25 16:03:51.798000+00:00 IMG_2272.JPG
             print(index, photo, photo.asset_date, photo.filename)
+            # check for zip
 
     def process_photo(self, photo: PhotoAsset, index: int, fromDate: str, toDate: str):
         if photo.created < datetime.date(fromDate): return
@@ -96,7 +97,9 @@ class Logic:
             if not result:
                 log.error('False verification code provided')
                 return False
-
+        
+        # If none of the negative conditions are met return true to proceed
+        return True 
 
     def get_processed_photos(self) -> pd.DataFrame:
         path = './log/processed_photos.csv'
