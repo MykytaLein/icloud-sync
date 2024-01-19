@@ -161,3 +161,9 @@ cython_debug/
 
 # log
 /log
+
+# Test
+/logic/test.py
+
+# Photos
+/photos

@@ -1,14 +1,15 @@
 import logging as log
-import json
 import shutil
-import zipfile
+import json
 from io import BytesIO
-from datetime import datetime
+from zipfile import ZipFile
+from datetime import datetime, date
 
 from pyicloud import PyiCloudService
-from pyicloud.services.photos import PhotoAsset
+from pyicloud.services.photos import PhotoAsset, PhotoAlbum
 from os.path import isfile
 import pandas as pd
+from dateutil import tz
 
 class Logic:
     device: str
@@ -16,6 +17,8 @@ class Logic:
     
     def __init__(self) -> None:
         self.processedPhotos = self.get_processed_photos()
+        self.fromZone = tz.tzutc()
+        self.toZone = tz.tzlocal()
 
     def load_last_run_info(self) -> dict:
         with open('./log/last_run.json') as info:
@@ -30,25 +33,46 @@ class Logic:
         authenticated = self.handle_authentication(api=api, mainWindow=mainWindow)
         if not authenticated: return 
 
-        # for loop
+        # Create a zip file to store all zip archives
+        today = datetime.now().date().strftime('%d.%m.%Y')
+        outputZipFilename = f'./photos/{fromDate}-{toDate}_imported_at_{today}.zip'
 
-        for index, photo in enumerate(api.photos.all):
-            # 499 <PhotoAsset: id=AcCjs8CfnS/WwBWehUF1GZOSh2AI> 2023-11-25 16:03:51.798000+00:00 IMG_2272.JPG
-            print(index, photo, photo.asset_date, photo.filename)
-            # check for zip
+        with ZipFile(outputZipFilename, "w") as zip:
+            self.process_photos(
+                zip=zip, 
+                photos=api.photos.all, 
+                fromDate=fromDate, 
+                toDate=toDate)
+            
+    def process_photos(self, zip: ZipFile, photos: PhotoAlbum, fromDate: str, toDate: str):
+        # Initialize zip directory name
+        zipDirectory = ''
+        for index, photo in enumerate(photos):
+            print(f'processing photo {photo}')
+            zipDirectory= self.get_zip_directory(index, zipDirectory, photo.created.date())
+            savePhoto = self.photo_is_to_be_saved(photo, fromDate, toDate)
+            if savePhoto: self.save_photo(index, photo, zipDirectory, zip)
 
-    def process_photo(self, photo: PhotoAsset, index: int, fromDate: str, toDate: str):
-        if photo.created < datetime.date(fromDate): return
-        if photo.created < datetime.date(toDate): return
-        if photo.id in self.processedPhotos.index: return
+    def get_zip_directory(self, index: int, zipDirectory: str, photoCreated: date):
+        if index % 100 != 0: return zipDirectory
+        return f'from_{photoCreated.strftime("%d.%m.%Y")}'
 
+    def photo_is_to_be_saved(self, photo: PhotoAsset, fromDate: str, toDate: str):
+        print('before', photo.created)
+        created = photo.created.replace(tzinfo=self.fromZone).astimezone(self.toZone)
+        print('after', created)
+        if created < datetime.strptime(fromDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
+        if created > datetime.strptime(toDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
+        if photo.id in self.processedPhotos.index: return False
+        return True
 
+    def save_photo(self, index: int, photo: PhotoAsset, zipDirectory: str, outputZip: ZipFile):
+        # Copy the photo as BytesIO object
+        photoCopy = BytesIO(photo.download().content)
 
-    def save_photo(self, photo: PhotoAsset):
-        photoCopy = BytesIO()
-        shutil.copyfileobj(photo.download(), photoCopy)
-        with open(f'./{photo.filename}', 'wb') as photoFile:
-            photoFile.write(photoCopy.raw.read())
+        # Save the photo with a unique name based on timestamp together with directory index (out of 100)
+        photo_name = f"{zipDirectory}/{photo.created}{(index+1)%101}.jpeg"
+        outputZip.writestr(photo_name, photoCopy.getvalue())
 
     def handle_authentication(self, api: PyiCloudService, mainWindow):
         # Two-factor authentication
