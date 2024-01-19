@@ -10,6 +10,7 @@ from pyicloud.services.photos import PhotoAsset, PhotoAlbum
 from os.path import isfile
 import pandas as pd
 from dateutil import tz
+import concurrent.futures
 
 class Logic:
     device: str
@@ -47,32 +48,52 @@ class Logic:
     def process_photos(self, zip: ZipFile, photos: PhotoAlbum, fromDate: str, toDate: str):
         # Initialize zip directory name
         zipDirectory = ''
-        for index, photo in enumerate(photos):
-            print(f'processing photo {photo}')
-            zipDirectory= self.get_zip_directory(index, zipDirectory, photo.created.date())
-            savePhoto = self.photo_is_to_be_saved(photo, fromDate, toDate)
-            if savePhoto: self.save_photo(index, photo, zipDirectory, zip)
+        # Use concurrent.futures.ThreadPoolExecutor for parallel execution
+        # !!! TO-DO
+        # doesn't really help, needed at all?
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for index, photo in enumerate(photos):
+                print(f'processing photo {photo}')
+                created = photo.created.replace(tzinfo=self.fromZone).astimezone(self.toZone)
+                zipDirectory= self.get_zip_directory(index, zipDirectory, created)
+                savePhoto = self.photo_is_to_be_saved(photo, created, fromDate, toDate)
+                if savePhoto:
+                    future = executor.submit(
+                        self.save_photo,
+                        index,
+                        photo,
+                        created,
+                        zipDirectory,
+                        zip
+                    )
+                    futures.append(future)
+                else: return
 
-    def get_zip_directory(self, index: int, zipDirectory: str, photoCreated: date):
+            # Wait for all futures to complete
+            concurrent.futures.wait(futures)
+
+    def get_zip_directory(self, index: int, zipDirectory: str, created: datetime):
         if index % 100 != 0: return zipDirectory
-        return f'from_{photoCreated.strftime("%d.%m.%Y")}'
+        return f'from_{created.date().strftime("%d.%m.%Y")}'
 
-    def photo_is_to_be_saved(self, photo: PhotoAsset, fromDate: str, toDate: str):
-        print('before', photo.created)
-        created = photo.created.replace(tzinfo=self.fromZone).astimezone(self.toZone)
-        print('after', created)
+    def photo_is_to_be_saved(self, photoId: str, created: datetime, fromDate: str, toDate: str):
         if created < datetime.strptime(fromDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
         if created > datetime.strptime(toDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
-        if photo.id in self.processedPhotos.index: return False
+        if photoId in self.processedPhotos.index: return False
         return True
 
-    def save_photo(self, index: int, photo: PhotoAsset, zipDirectory: str, outputZip: ZipFile):
+    def save_photo(self, index: int, photo: PhotoAsset, created: datetime, zipDirectory: str, zip: ZipFile):
         # Copy the photo as BytesIO object
         photoCopy = BytesIO(photo.download().content)
 
+        # Diffirentiate between photos and videos
+        if photo.filename[-3:] == 'MOV': format = 'mp4'
+        else: format = 'jpeg'
+
         # Save the photo with a unique name based on timestamp together with directory index (out of 100)
-        photo_name = f"{zipDirectory}/{photo.created}{(index+1)%101}.jpeg"
-        outputZip.writestr(photo_name, photoCopy.getvalue())
+        photo_name = f"{zipDirectory}/{created.strftime('%d.%m.%Y-%H.%M.%S')}-{(index+1)%101}.{format}"
+        zip.writestr(photo_name, photoCopy.getvalue())
 
     def handle_authentication(self, api: PyiCloudService, mainWindow):
         # Two-factor authentication
