@@ -48,30 +48,39 @@ class Logic:
     def process_photos(self, zip: ZipFile, photos: PhotoAlbum, fromDate: str, toDate: str):
         # Initialize zip directory name
         zipDirectory = ''
+
+        for index, photo in enumerate(photos):
+            print(f'processing photo {photo}')
+            created = photo.created.replace(tzinfo=self.fromZone).astimezone(self.toZone)
+            zipDirectory= self.get_zip_directory(index, zipDirectory, created)
+            savePhoto = self.photo_is_to_be_saved(photo, created, fromDate, toDate)
+            if index >= 20: return
+            if savePhoto: self.save_photo(index, photo, created, zipDirectory, zip)
+            else: return
         # Use concurrent.futures.ThreadPoolExecutor for parallel execution
         # !!! TO-DO
         # doesn't really help, needed at all?
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = []
-            for index, photo in enumerate(photos):
-                print(f'processing photo {photo}')
-                created = photo.created.replace(tzinfo=self.fromZone).astimezone(self.toZone)
-                zipDirectory= self.get_zip_directory(index, zipDirectory, created)
-                savePhoto = self.photo_is_to_be_saved(photo, created, fromDate, toDate)
-                if savePhoto:
-                    future = executor.submit(
-                        self.save_photo,
-                        index,
-                        photo,
-                        created,
-                        zipDirectory,
-                        zip
-                    )
-                    futures.append(future)
-                else: return
+        # with concurrent.futures.ThreadPoolExecutor() as executor:
+        #     futures = []
+        #     for index, photo in enumerate(photos):
+        #         print(f'processing photo {photo}')
+        #         created = photo.created.replace(tzinfo=self.fromZone).astimezone(self.toZone)
+        #         zipDirectory= self.get_zip_directory(index, zipDirectory, created)
+        #         savePhoto = self.photo_is_to_be_saved(photo, created, fromDate, toDate)
+        #         if savePhoto:
+        #             future = executor.submit(
+        #                 self.save_photo,
+        #                 index,
+        #                 photo,
+        #                 created,
+        #                 zipDirectory,
+        #                 zip
+        #             )
+        #             futures.append(future)
+        #         else: return
 
-            # Wait for all futures to complete
-            concurrent.futures.wait(futures)
+        #     # Wait for all futures to complete
+        #     concurrent.futures.wait(futures)
 
     def get_zip_directory(self, index: int, zipDirectory: str, created: datetime):
         if index % 100 != 0: return zipDirectory
@@ -88,8 +97,7 @@ class Logic:
         photoCopy = BytesIO(photo.download().content)
 
         # Diffirentiate between photos and videos
-        if photo.filename[-3:] == 'MOV': format = 'mp4'
-        else: format = 'jpeg'
+        format = photo.filename[-3:]
 
         # Save the photo with a unique name based on timestamp together with directory index (out of 100)
         photo_name = f"{zipDirectory}/{created.strftime('%d.%m.%Y-%H.%M.%S')}-{(index+1)%101}.{format}"
