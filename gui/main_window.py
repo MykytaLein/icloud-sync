@@ -1,8 +1,9 @@
+import sys
+import logging as log
 import tkinter as tk
 from tkcalendar import DateEntry
 from tkinter.ttk import Combobox
 from tkinter import simpledialog
-import logging as log
 from datetime import date
 
 from gui.additional_gui import TkConsole, PopUpListBox
@@ -31,25 +32,34 @@ class MainWindow(tk.Frame):
         
         # Error message
         self.error = tk.Label(master=self, text='', fg='red')
+
+        # Date validator command
+        dateValidation = self.register(self.date_validator)
         
         # Date from
         self.dateFrom = tk.StringVar()
         self.inputs.append(self.dateFrom)
-        dateFromLabel = tk.Label(master=self, text='Date from:', 
-                                 padx=10, pady=10, anchor='w')
-        dateFromInput = DateEntry(master=self, firstweekday='monday', date_pattern='dd.MM.yyyy', textvariable=self.dateFrom)
-        dateFromInput.set_date(lastRunDateTo)
-        dateFromButton = tk.Button(master=self, text='From last run', pady=5,
-                                   command=lambda:dateFromInput.set_date(lastRunDateTo))
+        dateFromLabel = tk.Label(master=self, text='Date from:', padx=10, pady=10, anchor='w')
+        
+        self.dateFromInput = DateEntry(master=self, firstweekday='monday', date_pattern='dd.MM.yyyy', textvariable=self.dateFrom)
+        self.dateFromInput.set_date(lastRunDateTo)
+        # Must be set after set_date because it flushes the validator
+        self.dateFromInput['validate'] = 'all'
+        self.dateFromInput['validatecommand'] = (dateValidation, '%S')
+
+        dateFromButton = tk.Button(master=self, text='From last run', pady=5, command=lambda:self.dateFromInput.set_date(lastRunDateTo))
 
         # Date to 
         self.dateTo = tk.StringVar()
         self.inputs.append(self.dateTo)
-        dateToLabel = tk.Label(master=self, text='Date to:', 
-                               padx=10, pady=10, anchor='w')
+        dateToLabel = tk.Label(master=self, text='Date to:', padx=10, pady=10, anchor='w')
+        
         dateToInput = DateEntry(master=self, firstweekday='monday', date_pattern='dd.MM.yyyy', textvariable=self.dateTo)
-        dateToButton = tk.Button(master=self, text='To now', pady=5,
-                                 command=lambda:dateToInput.set_date(date.today()))
+        # Must be set after set_date because it flushes the validator
+        self.dateFromInput['validate'] = 'all'
+        self.dateFromInput['validatecommand'] = (dateValidation, '%S')
+
+        dateToButton = tk.Button(master=self, text='To now', pady=5, command=lambda:dateToInput.set_date(date.today()))
 
         # Last run
         lastRunLabel = tk.Label(master=self, padx=10, pady=10, 
@@ -91,13 +101,14 @@ class MainWindow(tk.Frame):
         
         # Console
         self.console = TkConsole(master=self, height=4)
+        sys.stdout = self.console
 
         header.grid(row=0, column=0, columnspan=4, sticky='nswe')
 
         self.error.grid(row=1, column=0, columnspan=4, sticky='nswe')
         
         dateFromLabel.grid(row=2, column=0, padx=(0, 5), pady=(10, 0), sticky='we')
-        dateFromInput.grid(row=2, column=1, padx=5, pady=(10, 0), sticky='we')
+        self.dateFromInput.grid(row=2, column=1, padx=5, pady=(10, 0), sticky='we')
         dateFromButton.grid(row=2, column=2, padx=5, pady=(10, 0), sticky='nswe')
 
         dateToLabel.grid(row=3, column=0, padx=(0, 10), pady=(10, 40), sticky='we')
@@ -122,7 +133,7 @@ class MainWindow(tk.Frame):
             self.grid_rowconfigure(row, weight=1)
         for column in range(1, 4, 1):
             self.grid_columnconfigure(column,weight=1)
-        self.grid_rowconfigure(6, weight=10)
+        self.grid_rowconfigure(6, weight=30)
 
     def show_hide_pass_clicked(self, checkbutton: tk.Checkbutton, pwdInput: tk.Entry, showPass: bool):
         if(showPass):
@@ -154,6 +165,12 @@ class MainWindow(tk.Frame):
             
         self.error['text'] = ''
         return True
+    
+    def date_validator(self, textInserted):
+        print(textInserted)
+        if str.isdigit(textInserted): return True
+        if str(textInserted) == '.': return True
+        return False
     
     def pop_up_2fa(self) -> str|None:
         return simpledialog.askstring(

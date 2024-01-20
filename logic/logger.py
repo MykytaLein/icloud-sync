@@ -1,5 +1,6 @@
-from gui.main_window import MainWindow
 import logging as log
+
+from gui.main_window import MainWindow
 
 class Logger:
     def __init__(self, mainWindow: MainWindow):
