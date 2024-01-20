@@ -41,13 +41,13 @@ class MainWindow(tk.Frame):
         self.inputs.append(self.dateFrom)
         dateFromLabel = tk.Label(master=self, text='Date from:', padx=10, pady=10, anchor='w')
         
-        self.dateFromInput = DateEntry(master=self, firstweekday='monday', date_pattern='dd.MM.yyyy', textvariable=self.dateFrom)
-        self.dateFromInput.set_date(lastRunDateTo)
+        dateFromInput = DateEntry(master=self, firstweekday='monday', date_pattern='dd.MM.yyyy', textvariable=self.dateFrom)
+        dateFromInput.set_date(lastRunDateTo)
         # Must be set after set_date because it flushes the validator
-        self.dateFromInput['validate'] = 'all'
-        self.dateFromInput['validatecommand'] = (dateValidation, '%S')
+        dateFromInput['validate'] = 'all'
+        dateFromInput['validatecommand'] = (dateValidation, '%S', '%P')
 
-        dateFromButton = tk.Button(master=self, text='From last run', pady=5, command=lambda:self.dateFromInput.set_date(lastRunDateTo))
+        dateFromButton = tk.Button(master=self, text='From last run', pady=5, command=lambda:dateFromInput.set_date(lastRunDateTo))
 
         # Date to 
         self.dateTo = tk.StringVar()
@@ -56,8 +56,8 @@ class MainWindow(tk.Frame):
         
         dateToInput = DateEntry(master=self, firstweekday='monday', date_pattern='dd.MM.yyyy', textvariable=self.dateTo)
         # Must be set after set_date because it flushes the validator
-        self.dateFromInput['validate'] = 'all'
-        self.dateFromInput['validatecommand'] = (dateValidation, '%S')
+        dateToInput['validate'] = 'all'
+        dateToInput['validatecommand'] = (dateValidation, '%S', '%P')
 
         dateToButton = tk.Button(master=self, text='To now', pady=5, command=lambda:dateToInput.set_date(date.today()))
 
@@ -108,7 +108,7 @@ class MainWindow(tk.Frame):
         self.error.grid(row=1, column=0, columnspan=4, sticky='nswe')
         
         dateFromLabel.grid(row=2, column=0, padx=(0, 5), pady=(10, 0), sticky='we')
-        self.dateFromInput.grid(row=2, column=1, padx=5, pady=(10, 0), sticky='we')
+        dateFromInput.grid(row=2, column=1, padx=5, pady=(10, 0), sticky='we')
         dateFromButton.grid(row=2, column=2, padx=5, pady=(10, 0), sticky='nswe')
 
         dateToLabel.grid(row=3, column=0, padx=(0, 10), pady=(10, 40), sticky='we')
@@ -166,8 +166,8 @@ class MainWindow(tk.Frame):
         self.error['text'] = ''
         return True
     
-    def date_validator(self, textInserted):
-        print(textInserted)
+    def date_validator(self, textInserted, newText):
+        if len(str(newText)) > 10: return False
         if str.isdigit(textInserted): return True
         if str(textInserted) == '.': return True
         return False
