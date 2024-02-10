@@ -7,8 +7,10 @@ from gui.main_window    import MainWindow
 def main():
     root = Tk()
     root.option_add("*Font", "Bauhaus")
-    logic = Logic()
-    mainWindow = MainWindow(master=root, logic=logic)
+    root.option_add('*Button.Background', '#699BE0')
+    root.option_add('*Button.Foreground', 'white')
+    # logic = Logic()
+    mainWindow = MainWindow(master=root)
     logger = Logger(mainWindow)
     
     root.grid_columnconfigure(0,weight=1)

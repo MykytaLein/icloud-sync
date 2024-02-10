@@ -7,18 +7,20 @@ from tkinter import simpledialog
 from datetime import date
 
 from gui.additional_gui import TkConsole, PopUpListBox
+import logic.logic as logic
 
 class MainWindow(tk.Frame):
-    def __init__(self, master: tk.Tk, logic):
+    def __init__(self, master: tk.Tk):
         tk.Frame.__init__(self, master=master)
         self.configure_grid_weights()
         self.inputs = list()
-        self.logic = logic
+        # self.logic = logic
+        self.running = False
 
         ###########################
         # Load last run information
         ###########################
-        lastRunDict = self.logic.load_last_run_info()
+        lastRunDict = logic.load_last_run_info()
         lastRunDate     = lastRunDict['last_run_date']
         lastRunDateFrom = lastRunDict['date_from']
         lastRunDateTo   = lastRunDict['date_to']
@@ -95,9 +97,9 @@ class MainWindow(tk.Frame):
                 checkbutton=pwdShow, pwdInput=pwdInput, showPass=showPass.get()))
 
         # Start button
-        startButton = tk.Button(master=self, text='Load photos\n from ICloud', 
-                                padx=20, bg='blue', fg='white',
-                                font='Bauhaus 18 bold', command=self.start_import)
+        self.startButton = tk.Button(
+            master=self, text='Start import\n from ICloud', padx=20, fg='white', 
+            font='Bauhaus 18 bold', command=self.start_or_stop_import)
         
         # Console
         self.console = TkConsole(master=self, height=4)
@@ -125,7 +127,7 @@ class MainWindow(tk.Frame):
         pwdInput.grid(row=5, column=1, padx=5, pady=(10,0), sticky='we')
         pwdShow.grid(row=5, column=2, padx=5, pady=(10,0), sticky='we')
 
-        startButton.grid(row=4, column=3, rowspan=2, padx=5, pady=10, sticky='nswe')
+        self.startButton.grid(row=4, column=3, rowspan=2, padx=5, pady=10, sticky='nswe')
         self.console.grid(row=6, column=0, columnspan=4, padx=5, pady=10, sticky='nswe')
 
     def configure_grid_weights(self):
@@ -149,12 +151,27 @@ class MainWindow(tk.Frame):
         email = self.email.get()
         return f'{appleIdInput}{email}'
 
-    def start_import(self):
-        # popUp = PopUpListBox(self, ['1', '2', '3'])
+    def start_or_stop_import(self):
+        if self.running:
+            self.stop_running()
+            self.logic.stop()
+        else:
+            if not self.validate_inputs(): return
+            self.set_running()
+            id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
+            self.logic = logic.Logic()
+            self.logic.set_variables(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
+            self.logic.start()
 
-        if not self.validate_inputs(): return
-        id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
-        self.logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
+        self.running = not self.running
+
+    def set_running(self):
+        self.startButton['bg'] = '#F86969'
+        self.startButton['text'] = 'Stop import\n from ICloud'
+
+    def stop_running(self):
+        self.startButton['bg'] = '#699BE0'
+        self.startButton['text'] = 'Start import\n from ICloud'
 
     def validate_inputs(self) -> bool:
         for input in self.inputs:
@@ -172,8 +189,13 @@ class MainWindow(tk.Frame):
         return False
     
     def pop_up_2fa(self) -> str|None:
-        return simpledialog.askstring(
-            title='Verification required', prompt='Enter the code from trusted device:')
+        newWin = tk.Tk()
+        newWin.option_add("*Font", "Bauhaus")
+        newWin.withdraw()
+        retVal = simpledialog.askstring(
+            title='Verification required', prompt='Enter the code from trusted device:', parent=newWin)
+        newWin.destroy()
+        return retVal
     
     def pop_up_2sa(self, devices: list) -> None:
         popup = PopUpListBox(master=self, values=devices, logic=self.logic)

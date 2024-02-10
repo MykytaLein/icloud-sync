@@ -5,6 +5,7 @@ from io         import BytesIO
 from zipfile    import ZipFile
 from datetime   import datetime
 from os.path    import isfile
+from threading  import Thread, Event
 
 import pandas as pd
 from pyicloud   import PyiCloudService
@@ -15,44 +16,46 @@ from dateutil   import tz
 # import concurrent.futures
 # import shutil
 
-class Logic:
+class Logic(Thread):
     device: str
     processedPhotos: pd.DataFrame
     
     def __init__(self) -> None:
+        super(Logic, self).__init__(target=self.load_photos, daemon=True)
+        self.stopEvent = Event()
         self.processedPhotos = self.get_processed_photos()
         self.fromZone = tz.tzutc()
         self.toZone = tz.tzlocal()
         self.today = datetime.now().date().strftime('%d.%m.%Y')
 
-    def load_last_run_info(self) -> dict:
-        with open('./log/last_run.json') as info:
-            return json.load(info)
-
-    def load_photos(self, appleId: str, pwd: str, 
+        
+    def set_variables(
+            self, appleId: str, pwd: str, 
             fromDate: str, toDate: str, mainWindow):
+        self.appleId, self.pwd, self.fromDate, self.toDate, self.mainWindow = (
+            appleId, pwd, fromDate, toDate, mainWindow)
+
+    def load_photos(self):
         # Establish connection to iCloud
         try:
-            api = PyiCloudService(appleId, pwd, cookie_directory='./log')
+            api = PyiCloudService(self.appleId, self.pwd, cookie_directory='./log')
         except PyiCloudFailedLoginException as e:
             log.error(f'Authentication failed: {str(e)}') 
-            return
+            return False
 
         # Handle authentication request
-        authenticated = self.handle_authentication(api=api, mainWindow=mainWindow)
-        if not authenticated: return 
+        authenticated = self.handle_authentication(api=api)
+        if not authenticated: return False
 
         # Create a zip file to store all zip archives
         # today = datetime.now().date().strftime('%d.%m.%Y')
-        outputZipFilename = f'./photos/{fromDate}-{toDate}_imported_at_{self.today}.zip'
+        outputZipFilename = f'./photos/{self.fromDate}-{self.toDate}_imported_at_{self.today}.zip'
 
         try:
             with ZipFile(outputZipFilename, "w") as zip:
                 self.process_photos(
                     zip=zip, 
-                    photos=api.photos.all, 
-                    fromDate=fromDate, 
-                    toDate=toDate)
+                    photos=api.photos.all)
         
         # except ValueError: pass
         finally:
@@ -68,26 +71,25 @@ class Logic:
             if filename in ['last_run.json', 'log.log']: continue
             os.remove(os.path.join(logDir, filename))
             
-    def process_photos(self, zip: ZipFile, photos: PhotoAlbum, fromDate: str, toDate: str):
+    def process_photos(self, zip: ZipFile, photos: PhotoAlbum):
         # Initialize zip directory name
         zipDirectory = ''
 
         for index, photo in enumerate(photos):
-            print(f'processing photo {photo}')
+            print(f'Processing photo {photo.filename}')
+            if self.stopped: return
             created = photo.created.replace(tzinfo=self.fromZone).astimezone(self.toZone)
             zipDirectory= self.get_zip_directory(index, zipDirectory, created)
-            savePhoto = self.photo_is_to_be_saved(photo, created, fromDate, toDate)
-            # if index >= 20: return
+            savePhoto = self.photo_is_to_be_saved(photo, created)
             if savePhoto: self.save_photo(index, photo, created, zipDirectory, zip)
-            # else: return
 
     def get_zip_directory(self, index: int, zipDirectory: str, created: datetime):
         if index % 100 != 0: return zipDirectory
         return f'from_{created.date().strftime("%d.%m.%Y")}'
 
-    def photo_is_to_be_saved(self, photoId: str, created: datetime, fromDate: str, toDate: str):
-        if created < datetime.strptime(fromDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
-        if created > datetime.strptime(toDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
+    def photo_is_to_be_saved(self, photoId: str, created: datetime):
+        if created < datetime.strptime(self.fromDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
+        if created > datetime.strptime(self.toDate, '%d.%m.%Y').replace(tzinfo=self.toZone): return False
         if photoId in self.processedPhotos.index: return False
         return True
 
@@ -107,15 +109,15 @@ class Logic:
     
     def add_processed_photo(self, photo: PhotoAsset, created: datetime):
         newRow = [photo.id, created.date, self.today]
-        print(newRow)
+        # print(newRow)
         self.processedPhotos.loc[photo.id] = newRow
-        print(self.processedPhotos)
+        # print(self.processedPhotos)
 
-    def handle_authentication(self, api: PyiCloudService, mainWindow):
+    def handle_authentication(self, api: PyiCloudService):
         # Two-factor authentication
         if api.requires_2fa:
             # Request authentication code
-            code = mainWindow.pop_up_2fa() # the code stops here until popup is closed
+            code = self.mainWindow.pop_up_2fa() # the code stops here until popup is closed
             
             # If popup was closed without input
             if not code: 
@@ -135,7 +137,7 @@ class Logic:
                 device.get('phoneNumber') for device in api.trusted_devices
             ]
             # Ask user to choose which device to use for authentication
-            mainWindow.pop_up_2sa(devices=devices)
+            self.mainWindow.pop_up_2sa(devices=devices)
 
             if not self.device: return False
 
@@ -146,7 +148,7 @@ class Logic:
                 return False
             
             # Request authentication code
-            code = mainWindow.pop_up_2fa() # the code stops here until popup is closed
+            code = self.mainWindow.pop_up_2fa() # the code stops here until popup is closed
 
             # If popup was closed without input
             if not code: 
@@ -169,5 +171,16 @@ class Logic:
         else:
             result = pd.DataFrame(columns=['photo_id', 'date_taken', 'date_imported'])
         
-        result.set_index('photo_id')
+        result.set_index('photo_id', drop=False)
         return result
+    
+    def stop(self):
+        self.stopEvent.set()
+
+    @property
+    def stopped(self):
+        return self.stopEvent.is_set()
+    
+def load_last_run_info() -> dict:
+    with open('./log/last_run.json') as info:
+        return json.load(info)
