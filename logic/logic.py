@@ -9,6 +9,7 @@ from os.path    import isfile
 import pandas as pd
 from pyicloud   import PyiCloudService
 from pyicloud.services.photos import PhotoAsset, PhotoAlbum
+from pyicloud.exceptions import PyiCloudFailedLoginException
 from dateutil   import tz
 
 # import concurrent.futures
@@ -31,8 +32,12 @@ class Logic:
     def load_photos(self, appleId: str, pwd: str, 
             fromDate: str, toDate: str, mainWindow):
         # Establish connection to iCloud
-        api = PyiCloudService(appleId, pwd, cookie_directory='./log')
-        
+        try:
+            api = PyiCloudService(appleId, pwd, cookie_directory='./log')
+        except PyiCloudFailedLoginException as e:
+            log.error(f'Authentication failed: {str(e)}') 
+            return
+
         # Handle authentication request
         authenticated = self.handle_authentication(api=api, mainWindow=mainWindow)
         if not authenticated: return 
@@ -52,6 +57,7 @@ class Logic:
         # except ValueError: pass
         finally:
             self.post_import()
+            log.info('Process finished')
 
     def post_import(self):
         self.processedPhotos.to_csv('./log/processed_photos.csv') # Overwrites with new numbers
@@ -101,7 +107,9 @@ class Logic:
     
     def add_processed_photo(self, photo: PhotoAsset, created: datetime):
         newRow = [photo.id, created.date, self.today]
+        print(newRow)
         self.processedPhotos.loc[photo.id] = newRow
+        print(self.processedPhotos)
 
     def handle_authentication(self, api: PyiCloudService, mainWindow):
         # Two-factor authentication
@@ -162,5 +170,4 @@ class Logic:
             result = pd.DataFrame(columns=['photo_id', 'date_taken', 'date_imported'])
         
         result.set_index('photo_id')
-        print(result, result.columns)
         return result

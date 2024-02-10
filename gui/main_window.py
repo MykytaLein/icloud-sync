@@ -155,7 +155,6 @@ class MainWindow(tk.Frame):
         if not self.validate_inputs(): return
         id, pwd, fromDate, toDate = self.get_apple_id(), self.pwd.get(), self.dateFrom.get(), self.dateTo.get()
         self.logic.load_photos(appleId=id, pwd=pwd, fromDate=fromDate, toDate=toDate, mainWindow=self)
-        log.info('oh ye')
 
     def validate_inputs(self) -> bool:
         for input in self.inputs:
