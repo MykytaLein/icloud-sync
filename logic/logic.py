@@ -27,7 +27,6 @@ class Logic(Thread):
         self.fromZone = tz.tzutc()
         self.toZone = tz.tzlocal()
         self.today = datetime.now().date().strftime('%d.%m.%Y')
-
         
     def set_variables(
             self, appleId: str, pwd: str, 
