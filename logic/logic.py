@@ -6,15 +6,12 @@ from zipfile    import ZipFile
 from datetime   import datetime
 from os.path    import isfile
 from threading  import Thread, Event
+from dateutil   import tz
 
 import pandas as pd
 from pyicloud   import PyiCloudService
 from pyicloud.services.photos import PhotoAsset, PhotoAlbum
 from pyicloud.exceptions import PyiCloudFailedLoginException
-from dateutil   import tz
-
-# import concurrent.futures
-# import shutil
 
 class Logic(Thread):
     device: str
@@ -63,12 +60,14 @@ class Logic(Thread):
 
     def post_import(self):
         self.processedPhotos.to_csv('./log/processed_photos.csv') # Overwrites with new numbers
+        self.save_last_run_info()
         
         # Delete session files
         logDir = './log'
         for filename in os.listdir(logDir):
             if filename in ['last_run.json', 'log.log']: continue
             os.remove(os.path.join(logDir, filename))
+
             
     def process_photos(self, zip: ZipFile, photos: PhotoAlbum):
         # Initialize zip directory name
@@ -173,6 +172,18 @@ class Logic(Thread):
         result.set_index('photo_id', drop=False)
         return result
     
+    def save_last_run_info(self):
+        # Define student_details dictionary
+        lastRun ={ 
+            "last_run_date": self.today, 
+            "date_from": self.fromDate, 
+            "date_to": self.toDate
+        } 
+            
+        # Convert and write JSON object to file
+        with open('./log/last_run.json', 'w') as lastRunFile: 
+            json.dump(lastRun, lastRunFile)
+
     def stop(self):
         self.stopEvent.set()
 
@@ -181,5 +192,13 @@ class Logic(Thread):
         return self.stopEvent.is_set()
     
 def load_last_run_info() -> dict:
+    if not os.path.isfile('./log/last_run.json'):
+        # defaultDate = datetime.strptime('01.01.1900', '%d.%m.%Y')
+        defaultDate = '01.01.1900'
+
+        return {"last_run_date": defaultDate, 
+            "date_from": defaultDate, 
+            "date_to": defaultDate}
+            
     with open('./log/last_run.json') as info:
         return json.load(info)

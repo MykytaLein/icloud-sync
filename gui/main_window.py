@@ -87,8 +87,7 @@ class MainWindow(tk.Frame):
         self.inputs.append(self.pwd)
         pwdLabel = tk.Label(master=self, text='Password:', 
                             padx=10, pady=10, anchor='w')
-        pwdInput = tk.Entry(master=self, textvariable=self.pwd)
-        pwdInput.config(show='*')
+        pwdInput = tk.Entry(master=self, textvariable=self.pwd, show='*')
 
         # Show/hide password checkbox
         showPass = tk.BooleanVar()
@@ -193,7 +192,7 @@ class MainWindow(tk.Frame):
         newWin.option_add("*Font", "Bauhaus")
         newWin.withdraw()
         retVal = simpledialog.askstring(
-            title='Verification required', prompt='Enter the code from trusted device:', parent=newWin)
+            title='Verification required', prompt='Enter the code from a trusted device:', parent=newWin)
         newWin.destroy()
         return retVal
     
